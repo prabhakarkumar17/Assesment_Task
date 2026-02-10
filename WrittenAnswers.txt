@@ -1,0 +1,53 @@
+Part 3 - Technical Questions & Answers
+
+1. Why is call() preferred over transfer()?
+Ans. transfer() only forwards 2300 gas, which fails if the recipient is a contract with a 
+     non-trivial receive function. call() forwards all available gas and is the modern 
+     standard. Additionally, transfer() silently fails in some cases, 
+     whereas call() returns a success boolean that must be explicitly checked, 
+     making failures checked rather than hidden.
+
+2. How would you secure this contract behind a proxy?
+Ans. Use the UUPS (Universal Upgradeable Proxy Standard) or Transparent Proxy pattern. 
+     Store beneficiary and vesting parameters in a separate state mapping indexed by a 
+     unique ID rather than contract-wide globals, allowing multiple vesting schedules. 
+     Implement a timelock on upgrades and maintain strict access control so only 
+     governance can upgrade. The proxy should be immutable once deployed to ensure no 
+     backdoor upgrades.
+
+3. Why are frontend-only validations dangerous?
+Ans. Frontend validations are purely basic, users can craft direct contract calls via ethers.js,
+     hardhat console, or custom scripts, bypassing all UI checks. 
+     Any critical validation (like minimum amounts, deadline checks, or permission checks) 
+     must exist in the smart contract itself. A malicious actor can interact 
+     directly with the contract, not through our UI.
+
+4. How can users be protected from malicious UIs?
+Ans. We can display the contract address and let users verify it independently on Etherscan before connecting.
+     Along with this we can also show a clear, human-readable summary of what transaction they're approving 
+     (amount, recipient, deadline) before signing. Its a good practice to consider using signed messages instead 
+     of direct transactions where possible—users see the data being signed in MetaMask. 
+     Last but not the least, we can implement contract event logging so users can audit all state changes on-chain, 
+     independently of any frontend. So, this way users can be protected from malicious UIs.
+
+5. What would you audit first in a vesting contract?
+Ans. Firstly, the release logic and arithmetic first—check for underflow/overflow edge cases, 
+     verify that released can never exceed vested, and we have to ensure the vesting formula is correct at start, 
+     midpoint, and end times. Then we have to verify access control: who can call release, 
+     can beneficiary be changed, can funds be stolen. 
+     Finally, test boundary conditions like what happens at block 0, at the exact start time,
+     and after duration expires.
+
+
+Bonus - I have answered one of the question :-
+
+1. Gas Optimizations
+Ans. The vesting contract could optimize by packing state variables "released" and "totalAmount"
+     into a single uint128 each within one storage slot, saving one SSTORE per release call
+     (~2,900 gas). Instead of calling vestedAmount() in release() to recalculate vesting every
+     time, we can cache the last vested amount and only recalculate if time has progressed.
+     However, the real gas win comes from batch operations: if we're deploying 100 vesting contracts, 
+     we can use a factory pattern to deploy them in a single transaction rather than individually. 
+     For the frontend, bundle multiple state reads (beneficiary, totalAmount, released, vestedAmount) 
+     into a single multicall contract to reduce RPC round-trips, which is often slower than on-chain computation.
+
