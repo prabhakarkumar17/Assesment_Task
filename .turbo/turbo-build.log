@@ -1,0 +1,9 @@
+
+
+> build
+> hardhat compile
+
+[1G[0K[dotenv@17.2.4] injecting env (0) from .env [2m-- tip: ⚙️  suppress all logs with { quiet: true }[0m
+Downloading compiler 0.8.20
+Compiled 1 Solidity file successfully (evm target: paris).
+[1G[0K⠙[1G[0K
